@@ -1,9 +1,5 @@
 #!/usr/bin/env ruby
 
-# To be added to the kickstart file
-
-
-
 require 'optparse'
 
 optparse = {}
@@ -15,19 +11,26 @@ optparse = OptionParse.new do |opts|
 		options [ :help ] =true
 	end
 
+
+
 end
 
 class ConfigLDAP
 
 	def initialize
-		$stdout.reopen("nfsManifest.txt", "w")
-    	$stderr.reopen("nfsManifest.txt", "a")
+		$stdout.reopen("ldapManifest.txt", "w")
+    	$stderr.reopen("ldapManifest.txt", "a")
   	end
 
 
   	def config 
-
-
+  		config_firewall
+  		config_slapd
+  		config_client_LDAP
+  		config_database
+  		config_mirgrate
+  		diradm
+  		config_ldap_start
   	end
 
 	#Configure iptables to allow traffic for ldap on ports 389 and 636 for TCP and UDP, and restart iptables
@@ -45,12 +48,12 @@ class ConfigLDAP
 		# Disable LDAPv2 connections
 		slapd_conf = slapd_conf.gsub (/allow bind_v2/, "#allow bind_v2")
 		# Configure the suffix, rootdn, rootpw
-		slapd_conf = slapd_conf.gsub (/suffix          "dc=your-domain,dc=com"/, "suffix          "dc=cit470,dc=nku,dc=edu"")
-		slapd_conf = slapd_conf.gsub (/rootdn          "cn=root,dc=example,dc=com"/, "rootdn          "cn=Manager,dc=cit470,dc=nku,dc=edu"") 
+		slapd_conf = slapd_conf.gsub (/suffix          "dc=your-domain,dc=com"/, "suffix          "dc=cit470_Team_4,dc=nku,dc=edu"")
+		slapd_conf = slapd_conf.gsub (/rootdn          "cn=root,dc=example,dc=com"/, "rootdn          " "") 
 		slapd_conf = slapd_conf.gsub (/# rootpw                {crypt}ijFYNcSNctBYg/,"\nrootpw                  {SSHA}3YGEc7Na9bdBANZ6nahRKhYxn3XCJED4")
 
 		# Write the slapd.conf file
-		File.open ('/etc/openldap/slapd.conf', 'w') {|file| file.puts slapd_conf}
+		File.open ('/etc/openldap/slapd.conf','w') {|file| file.puts slapd_conf}
 	end
 
 	# Edit the client LDAP config file on the server
@@ -60,8 +63,15 @@ class ConfigLDAP
 		# Set the BASE suffix to match the BASE suffix from the slapd conf file
 		ldap_conf = ldap_conf.gsub (/#BASE /, "BASE dc=cit470_Team_4,dc=nku,dc=edu")
 
+		
 		# Write the ldap.conf file
-		File.open ('/etc/openldap/ldap.conf', 'w') {|file| file.puts ldap_conf}
+		File.open ('/etc/openldap/ldap.conf','w') {|file| file.puts ldap_conf}
+
+		# Configure LDAP ACL to allow  password changes
+
+		ldap="access to attrs=userPassword\nby self write\nby anonymous auth\nby * none\naccess to *\nby self write\nby * read"
+		File.open ('/etc/openldap/ldap.conf','a') {|file| file.puts ldap}
+		
 	end
 
 	# Build LDAP database  
@@ -71,7 +81,7 @@ class ConfigLDAP
 		mirgrate_common = File.read('#{migration_dir}/mirgrate_common.ph')
 		mirgrate_common = mirgrate_common.gsub (/$DEFAULT_MAIL_DOMAIN = "your.domain";/, "$DEFAULT_MAIL_DOMAIN = "cit470_Team_4.nku.edu";")
 		mirgrate_common = mirgrate_common.gsub (/$DEFAULT_BASE = "[["BaseDN"]]";/, "$DEFAULT_BASE = "dc=cit470_Team_4, dc=nku, dc=edu";")
-		File.open ('#{migration_dir}/mirgrate_common.ph', 'w') {|file| file.puts mirgrate_common} 
+		File.open ('#{migration_dir}/mirgrate_common.ph','w') {|file| file.puts mirgrate_common} 
 
 		base_ldap = 
 		"dn: dc=cit470_Team_4,dc=nku,dc=edu
@@ -107,50 +117,36 @@ class ConfigLDAP
 	end
 
 
-# Delete old LDAP database
-
-
-
-
 # Start LDAP service, verify it is running and have it start on boot
-def config_ldap_start
+	def config_ldap_start
 
-	`chkconfig --level 3 ldap on`
-	`service ldap start`
+		`chkconfig --level 3 ldap on`
+		`service ldap start`
 
-	ldap_status = `service ldap status`
+		ldap_status = `service ldap status`
 
-	if ldap_status.include? "running"
-		puts "LDAP Server was started correctly"
-	elsif ldap_status.include? "stopped"
-		puts "LDAP server is not started or is not working correctly"
-	else
-		puts "Error processing LDAP status"
+		if ldap_status.include? "running"
+			puts "LDAP Server was started correctly"
+		elsif ldap_status.include? "stopped"
+			puts "LDAP server is not started or is not working correctly"
+		else
+			puts "Error processing LDAP status"
+		end
 	end
+
+	# Download and move diram to the local directory
+	def diradm
+		`cd /usr/local`
+		`wget wget http://www.hits.at/diradm/diradm-1.3.tar.gz`
+		`tar zxvf diradm-1.3.tar.gz`
+	end
+
+
+
+
 end
 
+obj = ConfigLDAP.new
 
-
-
-# Configure LDAP ACL to allow  password changes
-
-access to attrs=userPassword
-	by self write
-	by anonymous auth
-	by * none
-access to *
-	by self write
-	by * read
-
-
-
-
-
-
-
-
-
-
-
-
+#authconfig --enableshadow --enableldap --enableldapauth --ldapserver=10.2.6.224 --ldapbasedn=dc=cit470_Team_4,dc=nku,dc=edu --update
 
