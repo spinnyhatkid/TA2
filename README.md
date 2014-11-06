@@ -3,6 +3,10 @@ TA2
 
 Server and client ldap and nfs configurations
 
+# Client & Server Kickstart Installations
+* Root user password for client installations is automatically set to 'client'
+* user1 password defaults to user
+
 # NFS Server Config
 * When running the NFS config program with the -h or --help options the application will let the user know that the script configures a server to use NFS.
 * When run without the help options the NFS config program will proceed to configure the server in the following ways:
