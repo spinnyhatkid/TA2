@@ -2,13 +2,13 @@
 
 require 'optparse'
 
-optparse = {}
+options = {}
 
-optparse = OptionParse.new do |opts| 
+optparse = OptionParser.new do |opts| 
 
 	options [ :help ] 
-	opts.on ('-h', '--help', 'Help') do
-		options [ :help ] =true
+	opts.on('-h','--help','Help') do
+		options [ :help ] == true
 	end
 
 
@@ -18,8 +18,8 @@ end
 class ConfigLDAP
 
 	def initialize
-		$stdout.reopen("ldapManifest.txt", "w")
-    	$stderr.reopen("ldapManifest.txt", "a")
+		$stdout.reopen("ldapManifest.txt","w")
+    		$stderr.reopen("ldapManifest.txt","a")
   	end
 
 
@@ -43,34 +43,34 @@ class ConfigLDAP
 
 	#Edit the slapd.conf file
 	def config_slapd
-		slapd_conf = File.read ('/etc/openldap/slapd.conf')
+		slapd_conf = File.read('/etc/openldap/slapd.conf')
 
 		# Disable LDAPv2 connections
-		slapd_conf = slapd_conf.gsub (/allow bind_v2/, "#allow bind_v2")
+		slapd_conf = slapd_conf.gsub(/allow bind_v2/,"#allow bind_v2")
 		# Configure the suffix, rootdn, rootpw
-		slapd_conf = slapd_conf.gsub (/suffix          "dc=your-domain,dc=com"/, "suffix          "dc=cit470_Team_4,dc=nku,dc=edu"")
-		slapd_conf = slapd_conf.gsub (/rootdn          "cn=root,dc=example,dc=com"/, "rootdn          " "") 
-		slapd_conf = slapd_conf.gsub (/# rootpw                {crypt}ijFYNcSNctBYg/,"\nrootpw                  {SSHA}3YGEc7Na9bdBANZ6nahRKhYxn3XCJED4")
+		slapd_conf = slapd_conf.gsub(/suffix          "dc=your-domain,dc=com"/,"suffix          \"dc=cit470_Team_4,dc=nku,dc=edu\"")
+		slapd_conf = slapd_conf.gsub(/rootdn          "cn=root,dc=example,dc=com"/,"rootdn          \"cn=Manager,dc=cit470_team_4,dc=nku,dc=edu \"") 
+		slapd_conf = slapd_conf.gsub(/# rootpw                \{crypt\}ijFYNcSNctBYg/,"\nrootpw                  \{SSHA\}3YGEc7Na9bdBANZ6nahRKhYxn3XCJED4")
 
 		# Write the slapd.conf file
-		File.open ('/etc/openldap/slapd.conf','w') {|file| file.puts slapd_conf}
+		File.open('/etc/openldap/slapd.conf','w'){|file| file.puts slapd_conf}
 	end
 
 	# Edit the client LDAP config file on the server
 	def config_client_LDAP
-		ldap_conf = File.read ('/etc/openldap/ldap.conf')
+		ldap_conf = File.read('/etc/openldap/ldap.conf')
 
 		# Set the BASE suffix to match the BASE suffix from the slapd conf file
-		ldap_conf = ldap_conf.gsub (/#BASE /, "BASE dc=cit470_Team_4,dc=nku,dc=edu")
+		ldap_conf = ldap_conf.gsub(/#BASE /,"BASE dc=cit470_Team_4,dc=nku,dc=edu")
 
 		
 		# Write the ldap.conf file
-		File.open ('/etc/openldap/ldap.conf','w') {|file| file.puts ldap_conf}
+		File.open('/etc/openldap/ldap.conf','w'){|file| file.puts ldap_conf}
 
 		# Configure LDAP ACL to allow  password changes
 
 		ldap="access to attrs=userPassword\nby self write\nby anonymous auth\nby * none\naccess to *\nby self write\nby * read"
-		File.open ('/etc/openldap/ldap.conf','a') {|file| file.puts ldap}
+		File.open('/etc/openldap/ldap.conf','a') {|file| file.puts ldap}
 		
 	end
 
@@ -79,9 +79,9 @@ class ConfigLDAP
 		migration_dir = '/usr/share/openldap/migration'
 
 		mirgrate_common = File.read('#{migration_dir}/mirgrate_common.ph')
-		mirgrate_common = mirgrate_common.gsub (/$DEFAULT_MAIL_DOMAIN = "your.domain";/, "$DEFAULT_MAIL_DOMAIN = "cit470_Team_4.nku.edu";")
-		mirgrate_common = mirgrate_common.gsub (/$DEFAULT_BASE = "[["BaseDN"]]";/, "$DEFAULT_BASE = "dc=cit470_Team_4, dc=nku, dc=edu";")
-		File.open ('#{migration_dir}/mirgrate_common.ph','w') {|file| file.puts mirgrate_common} 
+		mirgrate_common = mirgrate_common.gsub(/$DEFAULT_MAIL_DOMAIN = "your.domain";/, "$DEFAULT_MAIL_DOMAIN = \"cit470_Team_4\.nku\.edu\";")
+		mirgrate_common = mirgrate_common.gsub(/$DEFAULT_BASE = "\[\["BaseDN"\]\]";/, "$DEFAULT_BASE = \"dc=cit470_Team_4, dc=nku, dc=edu\";")
+		File.open('#{migration_dir}/mirgrate_common.ph','w'){|file| file.puts mirgrate_common} 
 
 		base_ldap = 
 		"dn: dc=cit470_Team_4,dc=nku,dc=edu
