@@ -20,6 +20,8 @@ class ConfigLDAP
 	def initialize
 	$stdout.reopen("ldapManifest.txt","w")
  	$stderr.reopen("ldapManifest.txt","a")
+ 	cp /etc/openldap/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+
   	end
 
 
