@@ -20,7 +20,7 @@ class ConfigLDAP
 	def initialize
 	$stdout.reopen("ldapManifest.txt","w")
  	$stderr.reopen("ldapManifest.txt","a")
- 	cp /etc/openldap/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+ 	`cp /etc/openldap/DB_CONFIG.example /var/lib/ldap/DB_CONFIG`
 
   	end
 
@@ -38,8 +38,10 @@ class ConfigLDAP
 
 	#Configure iptables to allow traffic for ldap on ports 389 and 636 for TCP and UDP, and restart iptables
   	def config_firewall
-		`iptables -A INPUT -s 10.0.0.0/255.0.0.0 -p udp -m state --state NEW -m multiport --dports 389,636 -j ACCEPT`
-		`iptables -A INPUT -s 10.0.0.0/255.0.0.0 -p tcp -m state --state NEW -m multiport --dports 389,636 -j ACCEPT`
+		`iptables -I INPUT 1 -s 10.0.0.0/8 -p tcp -m tcp --dport 389 -j ACCEPT`
+      		`iptables -I INPUT 1 -s 10.0.0.0/8 -p udp -m udp --dport 389 -j ACCEPT`
+		`iptables -I INPUT 1 -s 10.0.0.0/8 -p tcp -m tcp --dport 636 -j ACCEPT`
+      		`iptables -I INPUT 1 -s 10.0.0.0/8 -p udp -m udp --dport 636 -j ACCEPT`
 		`service iptables save`
 		`service iptables restart`
 		
@@ -84,8 +86,8 @@ class ConfigLDAP
 		migration_dir ='/usr/share/openldap/migration'
 
 		migrate_common = File.read("#{migration_dir}/migrate_common.ph")
-		migrate_common = migrate_common.gsub(/$DEFAULT_MAIL_DOMAIN = \"padl.com\";/, "$DEFAULT_MAIL_DOMAIN = \"cit470_Team_4\.nku\.edu\";")
-		migrate_common = migrate_common.gsub(/$DEFAULT_BASE = \"dc=padl,dc=com\";/, "$DEFAULT_BASE = \"dc=cit470_Team_4, dc=nku, dc=edu\";")
+		migrate_common = migrate_common.gsub(/\$DEFAULT_MAIL_DOMAIN = \"padl.com\";/, "$DEFAULT_MAIL_DOMAIN = \"cit470_Team_4\.nku\.edu\";")
+		migrate_common = migrate_common.gsub(/\$DEFAULT_BASE = \"dc=padl,dc=com\";/, "$DEFAULT_BASE = \"dc=cit470_Team_4, dc=nku, dc=edu\";")
 		File.open("#{migration_dir}/migrate_common.ph",'w'){|file| file.puts migrate_common} 
 
 		base_ldap = 
